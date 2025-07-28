@@ -32,12 +32,6 @@ function renderCameras(cams) {
   });
 }
 
-function getSpeedLimitFromAPI(lat, lon) {
-  const url = `https://api.openstreetmap.org/api/0.6/map?bbox=${lon-0.001},${lat-0.001},${lon+0.001},${lat+0.001}`;
-  // Placeholder – real external API should be used (like HERE, TomTom or OpenStreetMap third-party)
-  return null;
-}
-
 function updateStatus(gpsSpeed, maxspeed) {
   const kmh = gpsSpeed ? (gpsSpeed * 3.6).toFixed(1) : "-";
   statusDiv.innerHTML = `🚗 Din hastighet: <b>${kmh} km/h</b><br>`;
@@ -84,57 +78,58 @@ function loadNearbyCameras(lat, lon) {
   });
 }
 
-navigator.geolocation.watchPosition(pos => {
-  const { latitude, longitude, speed } = pos.coords;
-  const lat = latitude;
-  const lon = longitude;
-  const gpsSpeed = speed;
+function startLocation() {
+  navigator.geolocation.watchPosition(pos => {
+    const { latitude, longitude, speed } = pos.coords;
+    const lat = latitude;
+    const lon = longitude;
+    const gpsSpeed = speed;
 
-  if (!userMarker) {
-    userMarker = L.marker([lat, lon], { color: "blue" }).addTo(map);
-    map.setView([lat, lon], 14);
-    loadNearbyCameras(lat, lon);
-  } else {
-    userMarker.setLatLng([lat, lon]);
-  }
+    if (!userMarker) {
+      userMarker = L.marker([lat, lon], { color: "blue" }).addTo(map);
+      map.setView([lat, lon], 14);
+      loadNearbyCameras(lat, lon);
+    } else {
+      userMarker.setLatLng([lat, lon]);
+    }
 
-  lastPosition = { lat, lon };
+    lastPosition = { lat, lon };
 
-  // check nearby average zones
-  cameras.forEach(cam => {
-    const dist = getDistanceKm(lat, lon, cam.lat, cam.lon);
-    if (dist < 0.15 && cam.type === "average") {
-      if (!avgStart || avgStart.zoneId !== cam.id) {
-        if (!avgStart) {
-          avgStart = { lat, lon, time: Date.now(), zoneId: cam.id };
-          avgZoneId = cam.id;
-        } else {
-          const secs = (Date.now() - avgStart.time) / 1000;
-          const dist = getDistanceKm(avgStart.lat, avgStart.lon, lat, lon);
-          const avgSpeed = (dist / (secs / 3600)).toFixed(1);
-          alert("Medelhastighetszon avslutad. Din snitthastighet: " + avgSpeed + " km/h");
-          avgStart = null;
-          avgZoneId = null;
+    cameras.forEach(cam => {
+      const dist = getDistanceKm(lat, lon, cam.lat, cam.lon);
+      if (dist < 0.15 && cam.type === "average") {
+        if (!avgStart || avgStart.zoneId !== cam.id) {
+          if (!avgStart) {
+            avgStart = { lat, lon, time: Date.now(), zoneId: cam.id };
+            avgZoneId = cam.id;
+          } else {
+            const secs = (Date.now() - avgStart.time) / 1000;
+            const dist = getDistanceKm(avgStart.lat, avgStart.lon, lat, lon);
+            const avgSpeed = (dist / (secs / 3600)).toFixed(1);
+            alert("Medelhastighetszon avslutad. Din snitthastighet: " + avgSpeed + " km/h");
+            avgStart = null;
+            avgZoneId = null;
+          }
         }
       }
-    }
-  });
+    });
 
-  let nearestSpeed = null;
-  let nearestDist = Infinity;
-  cameras.forEach(cam => {
-    const d = getDistanceKm(lat, lon, cam.lat, cam.lon);
-    if (cam.maxspeed && d < 0.3 && d < nearestDist) {
-      nearestSpeed = cam.maxspeed;
-      nearestDist = d;
-    }
-  });
+    let nearestSpeed = null;
+    let nearestDist = Infinity;
+    cameras.forEach(cam => {
+      const d = getDistanceKm(lat, lon, cam.lat, cam.lon);
+      if (cam.maxspeed && d < 0.3 && d < nearestDist) {
+        nearestSpeed = cam.maxspeed;
+        nearestDist = d;
+      }
+    });
 
-  updateStatus(gpsSpeed, nearestSpeed);
-}, err => {
-  statusDiv.innerText = "🚫 GPS-fel: " + err.message;
-}, {
-  enableHighAccuracy: true,
-  maximumAge: 1000,
-  timeout: 10000
-});
+    updateStatus(gpsSpeed, nearestSpeed);
+  }, err => {
+    statusDiv.innerText = "🚫 GPS-fel: " + err.message;
+  }, {
+    enableHighAccuracy: true,
+    maximumAge: 1000,
+    timeout: 10000
+  });
+}

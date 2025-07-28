@@ -10,11 +10,13 @@
     #map { height: 70vh; }
     #status { padding: 1rem; background: #f2f2f2; }
     .warning { color: red; font-weight: bold; }
+    button { margin: 1rem; padding: 1rem; font-size: 1rem; }
   </style>
 </head>
 <body>
   <div id="map"></div>
   <div id="status">🔄 Startar Fridas Fartvarnare...</div>
+  <button onclick="startLocation()">📍 Aktivera GPS</button>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="js/fetchSpeedCamerasLive.js"></script>
